@@ -365,8 +365,15 @@ namespace Bachelor_Evgeniy
                     break;
                 }
 
-                var state = letterPos.Contains(symbolNum) ? RECOGNIZE_LETTERS : RECOGNIZE_DIGITS;
-                answer += RecognizeSymbol((Bitmap)CvMatToImg(thresh), state);
+                //var state = letterPos.Contains(symbolNum) ? RECOGNIZE_LETTERS : RECOGNIZE_DIGITS;
+
+                double[] input = GetInputFromImage((Bitmap)CvMatToImg(thresh));
+                neuralNetwork.Test(input);
+
+                double bestNeuron = neuralNetwork.neuronActivationFuncs.Max();
+                int simmilarSymbol = neuralNetwork.neuronActivationFuncs.ToList().IndexOf(bestNeuron);
+
+                answer += AVAILABLE_SYMBOLS[simmilarSymbol];
                 //MessageBox.Show(rect.Location + "  " + rect.Size + "  " + rect.Width + ":" + rect.Height);
 
                 symbolNum++;
