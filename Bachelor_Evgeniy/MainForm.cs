@@ -19,15 +19,18 @@ namespace Bachelor_Evgeniy
         private const int RECOGNIZE_LETTERS = 1;
         private const int RECOGNIZE_ALL = 2;
 
-        private const String AVAILABLE_SYMBOLS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        private const String AVAILABLE_SYMBOLS = "ABCEHKMOPTXY0123456789";
         private List<int> letterPos = new List<int>();
         private List<PictureBox> symbolPicBoxes = new List<PictureBox>();
         private String trainingDataPath = "../../TrainingData/";
         private Dictionary<Char, double[,]> trainedModels = new Dictionary<Char, double[,]>();
 
+        private NeuralNetwork neuralNetwork;
+
         public MainForm()
         {
             InitializeComponent();
+            neuralNetwork = new NeuralNetwork(3251, 22, 0.05);
         }
 
         private void MainForm_Load(object sender, EventArgs e)
@@ -45,6 +48,44 @@ namespace Bachelor_Evgeniy
             symbolPicBoxes.Add(symbolPictureBox7);
             symbolPicBoxes.Add(symbolPictureBox8);
             symbolPicBoxes.Add(symbolPictureBox9);
+        }
+
+        private void TrainNeuralNetwork()
+        {
+            int correctCount = 0;
+            Random rand = new Random();
+            int i = 0;
+            DateTime started = DateTime.Now;
+
+            while (correctCount < 100)
+            {
+                if (neuralNetwork.fullError < 0.1)
+                    correctCount++;
+                else correctCount = 0;
+                i++;
+
+                var symbol = rand.Next() % 22;
+
+                var fileName = String.Format("{0}_{1}.jpg",
+                    AVAILABLE_SYMBOLS[symbol],
+                    String.Format("{0:D3}", rand.Next()%10 + 1));
+
+                var image = Image.FromFile(trainingDataPath + fileName);
+                double[] nextInput = GetInputFromImage((Bitmap)image);
+                double[] desiredOutput = new double[22];
+                desiredOutput[symbol] = 1;
+
+                neuralNetwork.Teach(nextInput, desiredOutput);
+                //printErrors(net.errors);
+            }
+
+            DateTime ended = DateTime.Now;
+            TimeSpan dateDiff = ended.Subtract(started);
+            //difference = "Teaching time in seconds: " + Math.Round(dateDiff.TotalSeconds, 3);
+            //gTextBoxString = printErrors(net.errors);
+
+            trainLabel.Text = "Нейронная сеть успешно обучена. Директория обучающей выборки: " + trainingDataPath + " Файл обученных эталонов: trained.mdlo";
+            trainLabel.ForeColor = Color.Green;
         }
 
         private void TrainModels()
@@ -88,6 +129,18 @@ namespace Bachelor_Evgeniy
 
             trainLabel.Text = "Все эталоны успешно обучены. Директория обучающей выборки: " + trainingDataPath + " Файл обученных эталонов: trained.mdlo";
             trainLabel.ForeColor = Color.Green;
+        }
+
+        private double[] GetInputFromImage(Bitmap img)
+        {
+            double[] input = new double[img.Height * img.Width + 1];
+            input[0] = 1; //BIAS
+
+            for (var i = 0; i < img.Height; i++)
+                for (var j = 0; j < img.Width; j++)
+                    input[i * img.Width + j + 1] = img.GetPixel(j, i).R > 0 ? 0d : 1d;
+
+            return input;
         }
 
         private char RecognizeSymbol(Bitmap img, int state = RECOGNIZE_ALL)
@@ -375,7 +428,8 @@ namespace Bachelor_Evgeniy
 
         private void trainButton_Click(object sender, EventArgs e)
         {
-            TrainModels();
+            TrainNeuralNetwork();
+            //TrainModels();
         }
 
         private void loadEthalonsButton_Click(object sender, EventArgs e)
